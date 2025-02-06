@@ -9,14 +9,14 @@ import java.net.Socket;
 import java.util.Scanner;
 
 import net.salesianos.client.theards.ServerListener;
+import net.salesianos.utils.Constants;
 
 public class PlayerClient {
     public static void main(String[] args) {
         try (Scanner scanner = new Scanner(System.in)) {
             System.out.println("Enter your name:");
             String name = scanner.nextLine();
-            Socket socket = new Socket("localhost", 8082);
-
+            Socket socket = new Socket("localhost", Constants.SEVER_PORT);
             DataOutputStream outputStream = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
             DataInputStream inputStream = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
 
