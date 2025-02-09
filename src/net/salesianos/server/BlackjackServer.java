@@ -17,25 +17,14 @@ public class BlackjackServer {
     private static int playersFinished = 0;
 
     public static void main(String[] args) {
-        System.out.println("Blackjack Server started on port " + Constants.SEVER_PORT);
-        System.out.println(
-                """
-                        \n
-                            Welcome to Blackjack!
-                            1. The goal is to get as close to 21 as possible without exceeding it.
-                            2. Number cards are worth their face value, face cards (J, Q, K) are worth 10, and Aces can be 1 or 11.
-                            3. You can 'hit' to take another card or 'stand' to keep your current hand.
-                            4. If your hand exceeds 21, you lose (bust).
-                            5. The dealer must hit until reaching at least 17.
-                            6. The closest to 21 without going over wins the round.
-                            Good luck!
-                            """);
+        System.out.println("Servidor Blackjack iniciado en el puerto " + Constants.SEVER_PORT);
 
         try (ServerSocket serverSocket = new ServerSocket(Constants.SEVER_PORT)) {
             while (true) {
                 Socket clientSocket = serverSocket.accept();
                 ClientHandler player = new ClientHandler(clientSocket);
                 players.add(player);
+                sendGameRules(player);
                 player.start();
 
                 if (players.size() >= 2) {
@@ -45,6 +34,21 @@ public class BlackjackServer {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private static void sendGameRules(ClientHandler player) {
+        player.sendMessage(
+                """
+
+                        ¡Bienvenido a Blackjack!
+                        1. El objetivo es acercarse lo máximo posible a 21 sin pasarse.
+                        2. Las cartas numéricas valen su valor nominal, las figuras (J, Q, K) valen 10 y los ases pueden valer 1 u 11.
+                        3. Puedes pedir carta ('pedir') para tomar otra carta o 'plantarte' para mantener tu mano actual.
+                        4. Si tu mano supera 21, pierdes (te pasas).
+                        5. El crupier debe pedir carta hasta llegar al menos a 17.
+                        6. El que más se acerque a 21 sin pasarse gana la ronda.
+                        ¡Buena suerte!
+                        """);
     }
 
     public static void broadcast(String message) {
@@ -59,7 +63,7 @@ public class BlackjackServer {
         dealerHand.clear();
         dealerHand.add(deck.drawCard());
         dealerHand.add(deck.drawCard());
-        broadcast("Dealer's first card: " + dealerHand.get(0));
+        broadcast("Primera carta del crupier: " + dealerHand.get(0));
 
         for (ClientHandler player : players) {
             player.giveCard(deck.drawCard());
@@ -83,21 +87,26 @@ public class BlackjackServer {
         while (calculateHandValue(dealerHand) < 17) {
             dealerHand.add(deck.drawCard());
         }
-        broadcast("Dealer's full hand: " + dealerHand);
+        broadcast("Mano completa del crupier: " + dealerHand);
         determineWinners();
         endGame();
     }
 
     private static void determineWinners() {
         int dealerScore = calculateHandValue(dealerHand);
+        List<ClientHandler> playersToRemove = new ArrayList<>();
         for (ClientHandler player : players) {
             int playerScore = calculateHandValue(player.getHand());
             if (playerScore > 21 || (dealerScore <= 21 && dealerScore >= playerScore)) {
-                player.sendMessage("You lose! Dealer wins.");
+                player.sendMessage("¡Has perdido! El crupier gana.");
             } else {
-                player.sendMessage("You win!");
+                player.sendMessage("¡Has ganado!");
             }
+            player.closeConnection();
+            playersToRemove.add(player);
         }
+        players.removeAll(playersToRemove);
+        playersFinished = 0;
     }
 
     public static int calculateHandValue(List<String> hand) {
@@ -121,18 +130,6 @@ public class BlackjackServer {
     }
 
     private static void endGame() {
-        broadcast("Game over! Closing connections...");
-        for (ClientHandler player : players) {
-            player.closeConnection();
-        }
-        players.clear();
-
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        System.exit(0);
+        broadcast("¡Juego terminado!");
     }
 }

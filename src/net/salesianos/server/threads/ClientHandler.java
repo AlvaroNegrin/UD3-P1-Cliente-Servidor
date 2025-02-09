@@ -23,7 +23,7 @@ public class ClientHandler extends Thread {
             input = new DataInputStream(socket.getInputStream());
             output = new DataOutputStream(socket.getOutputStream());
             playerName = input.readUTF();
-            BlackjackServer.broadcast(playerName + " has joined the game!");
+            BlackjackServer.broadcast(playerName + " se ha unido al juego!");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -34,18 +34,18 @@ public class ClientHandler extends Thread {
             output.writeUTF(message);
             output.flush();
         } catch (IOException e) {
-            System.out.println("Error sending message to " + playerName + ". Disconnecting...");
+            System.out.println("Error al enviar mensaje a " + playerName + ". Desconectando...");
             closeConnection();
         }
     }
 
     public void giveCard(String card) {
         hand.add(card);
-        sendMessage("You received: " + card);
+        sendMessage("Has recibido: " + card);
     }
 
     public void showHand() {
-        sendMessage("Your hand: " + hand);
+        sendMessage("Tu mano: " + hand);
     }
 
     public List<String> getHand() {
@@ -70,27 +70,28 @@ public class ClientHandler extends Thread {
         try {
             while (running) {
                 String action = input.readUTF();
-                if (action.equalsIgnoreCase("hit")) {
+                if (action.equalsIgnoreCase("pedir")) {
                     String card = BlackjackServer.drawCardFromDeck();
                     giveCard(card);
                     showHand();
                     if (BlackjackServer.calculateHandValue(hand) > 21) {
-                        sendMessage("You busted!");
+                        sendMessage("¡Te has pasado!");
                         closeConnection();
                         BlackjackServer.playerFinishedTurn();
                         return;
                     }
-                } else if (action.equalsIgnoreCase("stand")) {
-                    sendMessage("You chose to stand.");
+                } else if (action.equalsIgnoreCase("plantarse")) {
+                    sendMessage("Has elegido plantarte.");
                     BlackjackServer.playerFinishedTurn();
                     return;
                 }
-                BlackjackServer.broadcast(playerName + " chooses: " + action);
+                BlackjackServer.broadcast(playerName + " elige: " + action);
             }
         } catch (IOException e) {
             if (running) {
-                System.out.println(playerName + " has left the game.");
+                System.out.println(playerName + " ha abandonado el juego.");
             }
+            closeConnection();
         }
     }
 }
